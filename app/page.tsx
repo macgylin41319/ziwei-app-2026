@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { astro, FunctionalPalace } from "iztro";
+import { astro } from "iztro";
 import { X, Star, Moon, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,7 +11,8 @@ export default function ZiWeiApp() {
   const [birthDate, setBirthDate] = useState("1998-08-16");
   const [birthTime, setBirthTime] = useState(14);
   const [gender, setGender] = useState<Gender>("女");
-  const [selectedPalace, setSelectedPalace] = useState<FunctionalPalace | null>(null);
+  // 这里把 FunctionalPalace 换成了 any，解决了报错
+  const [selectedPalace, setSelectedPalace] = useState<any>(null);
 
   const horoscope = useMemo(() => {
     try {
@@ -107,7 +108,7 @@ export default function ZiWeiApp() {
                   </div>
               </div>
 
-              {horoscope.palaces.map((palace, index) => {
+              {horoscope.palaces.map((palace: any, index: number) => {
                  const isLifePalace = palace.name === '命宫';
                  const isBodyPalace = palace.name === '身宫';
                  return (
@@ -133,7 +134,7 @@ export default function ZiWeiApp() {
                     </div>
 
                     <div className="flex-1 content-start flex flex-wrap gap-x-2 gap-y-1">
-                        {palace.majorStars.map(star => (
+                        {palace.majorStars.map((star: any) => (
                             <span key={star.name} className={`text-sm font-bold ${['庙','旺'].includes(star.brightness) ? 'text-red-400' : 'text-slate-200'}`}>
                                 {star.name}<sup className="text-[8px] ml-[1px] opacity-60 font-normal scale-75 inline-block text-slate-400">{star.brightness}</sup>
                                 {star.mutagen && (
@@ -147,7 +148,7 @@ export default function ZiWeiApp() {
                                 )}
                             </span>
                         ))}
-                        {palace.minorStars.map(star => (
+                        {palace.minorStars.map((star: any) => (
                             <span key={star.name} className="text-xs text-slate-400 scale-95 origin-left">{star.name}</span>
                         ))}
                     </div>
@@ -205,7 +206,7 @@ export default function ZiWeiApp() {
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                     {selectedPalace.majorStars.length > 0 ? (
-                                        selectedPalace.majorStars.map(star => (
+                                        selectedPalace.majorStars.map((star: any) => (
                                             <div key={star.name} className="bg-slate-800 p-3 rounded-lg border border-slate-700 flex-1 min-w-[100px]">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className={`font-bold ${['庙','旺'].includes(star.brightness) ? 'text-red-400' : 'text-slate-200'}`}>
@@ -228,7 +229,7 @@ export default function ZiWeiApp() {
                             <div>
                                 <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">辅星</h3>
                                 <div className="flex flex-wrap gap-2 text-sm text-slate-300">
-                                    {selectedPalace.minorStars.map(star => (
+                                    {selectedPalace.minorStars.map((star: any) => (
                                         <span key={star.name} className="bg-slate-800/50 px-2 py-1 rounded border border-white/5">{star.name}</span>
                                     ))}
                                 </div>
