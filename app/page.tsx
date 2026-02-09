@@ -2,7 +2,11 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { astro } from "iztro";
-import { Grid, Star, Smile, User, Sun } from "lucide-react";
+
+// --- 简单图标组件 (防止图标库报错) ---
+const IconGrid = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>;
+const IconStar = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>;
+const IconSmile = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>;
 
 type Gender = "男" | "女";
 type TabView = "pan" | "ming" | "character";
@@ -52,7 +56,7 @@ export default function ZiWeiApp() {
     return lifePalace.majorStars;
   }, [lifePalace]);
 
-  if (!mounted) return <div className="min-h-screen bg-slate-50" />;
+  if (!mounted) return <div className="min-h-screen bg-white" />;
 
   const gridPositions: Record<string, string> = {
     "巳": "col-start-1 row-start-1", "午": "col-start-2 row-start-1",
@@ -64,21 +68,21 @@ export default function ZiWeiApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] text-[#333] font-sans pb-24">
+    <div className="min-h-screen bg-[#f9fafb] text-[#111] font-sans pb-24">
       {/* 顶部 */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-         <div className="max-w-4xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-center md:justify-between">
-            <h1 className="text-lg font-bold text-[#d93025] flex items-center gap-1">
-                <Sun className="w-5 h-5"/> 神巴巴紫微
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+         <div className="max-w-4xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
+            <h1 className="text-lg font-bold text-[#e11d48] flex items-center gap-2">
+                紫微斗数 <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-300 font-normal">神巴巴复刻版</span>
             </h1>
             <div className="flex flex-wrap gap-2 text-xs">
-                <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="bg-slate-100 border border-slate-300 rounded px-2 py-1 outline-none" />
-                <select value={birthTime} onChange={e => setBirthTime(Number(e.target.value))} className="bg-slate-100 border border-slate-300 rounded px-2 py-1 outline-none">
+                <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="bg-gray-50 border border-gray-300 rounded px-2 py-1 outline-none" />
+                <select value={birthTime} onChange={e => setBirthTime(Number(e.target.value))} className="bg-gray-50 border border-gray-300 rounded px-2 py-1 outline-none">
                      {Array.from({length: 24}).map((_, i) => <option key={i} value={i}>{i}:00 ({getTimeZhi(i)})</option>)}
                 </select>
-                <div className="flex bg-slate-100 rounded border border-slate-300 overflow-hidden">
+                <div className="flex bg-gray-50 rounded border border-gray-300 overflow-hidden">
                      {(['男', '女'] as Gender[]).map(g => (
-                        <button key={g} onClick={() => setGender(g)} className={`px-3 py-1 transition-colors ${gender === g ? 'bg-[#d93025] text-white' : 'text-slate-600'}`}>{g}</button>
+                        <button key={g} onClick={() => setGender(g)} className={`px-3 py-1 transition-colors ${gender === g ? 'bg-[#e11d48] text-white' : 'text-gray-600'}`}>{g}</button>
                     ))}
                 </div>
             </div>
@@ -88,60 +92,59 @@ export default function ZiWeiApp() {
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* 基本信息 */}
         {horoscope && (
-        <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-[#fdf0ef] px-4 py-2 border-b border-[#fce4e2] flex items-center gap-2">
-                <User className="w-4 h-4 text-[#d93025]" />
-                <h2 className="font-bold text-[#d93025] text-sm">基本信息</h2>
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-[#fff1f2] px-4 py-2 border-b border-[#fecdd3] flex items-center gap-2">
+                <h2 className="font-bold text-[#e11d48] text-sm">基本信息</h2>
             </div>
             <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-2 text-sm">
-                <div><span className="text-slate-400 text-xs block">公历</span><span className="font-medium">{horoscope.solarDate}</span></div>
-                <div><span className="text-slate-400 text-xs block">农历</span><span className="font-medium">{horoscope.lunarDate}</span></div>
-                <div><span className="text-slate-400 text-xs block">八字</span><span className="font-medium tracking-widest">{horoscope.chineseDate?.split(' ').join(' ')}</span></div>
-                <div><span className="text-slate-400 text-xs block">生肖</span><span className="font-medium">{horoscope.zodiac}</span></div>
-                <div><span className="text-slate-400 text-xs block">五行局</span><span className="font-medium text-[#d93025]">{horoscope.fiveElements}</span></div>
-                <div><span className="text-slate-400 text-xs block">命主</span><span className="font-medium">{horoscope.soul}</span></div>
-                <div><span className="text-slate-400 text-xs block">身主</span><span className="font-medium">{horoscope.body}</span></div>
+                <div><span className="text-gray-400 text-xs block">公历</span><span className="font-medium">{horoscope.solarDate}</span></div>
+                <div><span className="text-gray-400 text-xs block">农历</span><span className="font-medium">{horoscope.lunarDate}</span></div>
+                <div><span className="text-gray-400 text-xs block">八字</span><span className="font-medium tracking-widest">{horoscope.chineseDate?.split(' ').join(' ')}</span></div>
+                <div><span className="text-gray-400 text-xs block">生肖</span><span className="font-medium">{horoscope.zodiac}</span></div>
+                <div><span className="text-gray-400 text-xs block">五行局</span><span className="font-medium text-[#e11d48]">{horoscope.fiveElements}</span></div>
+                <div><span className="text-gray-400 text-xs block">命主</span><span className="font-medium">{horoscope.soul}</span></div>
+                <div><span className="text-gray-400 text-xs block">身主</span><span className="font-medium">{horoscope.body}</span></div>
             </div>
         </section>
         )}
 
         {/* 内容区 */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[500px]">
-            <div className="flex border-b border-slate-200">
-                <button onClick={() => setActiveTab("pan")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "pan" ? "text-[#d93025] border-b-2 border-[#d93025] bg-[#fffbfb]" : "text-slate-500 hover:bg-slate-50"}`}>
-                    <Grid className="w-4 h-4"/> 紫微排盘
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[500px]">
+            <div className="flex border-b border-gray-200">
+                <button onClick={() => setActiveTab("pan")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "pan" ? "text-[#e11d48] border-b-2 border-[#e11d48] bg-[#fff1f2]/30" : "text-gray-500 hover:bg-gray-50"}`}>
+                    <IconGrid/> 紫微排盘
                 </button>
-                <button onClick={() => setActiveTab("ming")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "ming" ? "text-[#d93025] border-b-2 border-[#d93025] bg-[#fffbfb]" : "text-slate-500 hover:bg-slate-50"}`}>
-                    <Star className="w-4 h-4"/> 命宫分析
+                <button onClick={() => setActiveTab("ming")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "ming" ? "text-[#e11d48] border-b-2 border-[#e11d48] bg-[#fff1f2]/30" : "text-gray-500 hover:bg-gray-50"}`}>
+                    <IconStar/> 命宫分析
                 </button>
-                <button onClick={() => setActiveTab("character")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "character" ? "text-[#d93025] border-b-2 border-[#d93025] bg-[#fffbfb]" : "text-slate-500 hover:bg-slate-50"}`}>
-                    <Smile className="w-4 h-4"/> 性格分析
+                <button onClick={() => setActiveTab("character")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "character" ? "text-[#e11d48] border-b-2 border-[#e11d48] bg-[#fff1f2]/30" : "text-gray-500 hover:bg-gray-50"}`}>
+                    <IconSmile/> 性格分析
                 </button>
             </div>
 
             <div className="p-4">
                 {activeTab === "pan" && horoscope && (
-                    <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 h-[400px] md:h-[600px] bg-[#f8f9fa] border border-slate-200 p-1">
-                        <div className="col-start-2 col-end-4 row-start-2 row-end-4 bg-white border border-slate-200 flex flex-col items-center justify-center text-center p-4">
-                            <div className="text-2xl font-serif font-bold text-[#d93025] mb-2">紫微命盘</div>
-                            <div className="text-xs text-slate-400">Shen88 在线排盘系统</div>
+                    <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 h-[400px] md:h-[600px] bg-[#f3f4f6] border border-gray-200 p-1">
+                        <div className="col-start-2 col-end-4 row-start-2 row-end-4 bg-white border border-gray-200 flex flex-col items-center justify-center text-center p-4">
+                            <div className="text-2xl font-serif font-bold text-[#e11d48] mb-2">紫微命盘</div>
+                            <div className="text-xs text-gray-400">Shen88 在线排盘系统</div>
                         </div>
                         {horoscope.palaces.map((palace: any, index: number) => (
-                            <div key={index} className={`${gridPositions[palace.earthlyBranch]} bg-white border border-slate-200 relative p-1 md:p-2 flex flex-col justify-between hover:shadow-md transition-shadow`}>
-                                <div className="flex justify-between items-start border-b border-slate-100 pb-1">
-                                    <span className={`text-xs md:text-sm font-bold ${palace.name === '命宫' ? 'text-white bg-[#d93025] px-1 rounded' : 'text-[#d93025]'}`}>{palace.name}</span>
-                                    <span className="text-[10px] text-slate-400 scale-90 origin-right">{palace.heavenlyStem}{palace.earthlyBranch}</span>
+                            <div key={index} className={`${gridPositions[palace.earthlyBranch]} bg-white border border-gray-200 relative p-1 md:p-2 flex flex-col justify-between hover:shadow-md transition-shadow`}>
+                                <div className="flex justify-between items-start border-b border-gray-100 pb-1">
+                                    <span className={`text-xs md:text-sm font-bold ${palace.name === '命宫' ? 'text-white bg-[#e11d48] px-1 rounded' : 'text-[#e11d48]'}`}>{palace.name}</span>
+                                    <span className="text-[10px] text-gray-400 scale-90 origin-right">{palace.heavenlyStem}{palace.earthlyBranch}</span>
                                 </div>
                                 <div className="flex-1 flex flex-wrap content-start gap-0.5 mt-1">
                                     {palace.majorStars.map((s: any) => (
-                                        <span key={s.name} className={`text-[10px] md:text-xs font-bold ${['庙','旺'].includes(s.brightness) ? 'text-[#d93025]' : 'text-slate-700'}`}>
+                                        <span key={s.name} className={`text-[10px] md:text-xs font-bold ${['庙','旺'].includes(s.brightness) ? 'text-[#e11d48]' : 'text-gray-700'}`}>
                                             {s.name}{s.mutagen && <span className="text-[8px] bg-red-100 text-red-600 rounded px-0.5 ml-0.5">{s.mutagen}</span>}
                                         </span>
                                     ))}
                                 </div>
-                                <div className="flex justify-between items-end border-t border-slate-100 pt-1">
-                                    <span className="text-[9px] text-slate-400">{palace.changsheng12}</span>
-                                    <span className="text-[9px] font-bold text-slate-600">{palace.decadal.range[0]}-{palace.decadal.range[1]}</span>
+                                <div className="flex justify-between items-end border-t border-gray-100 pt-1">
+                                    <span className="text-[9px] text-gray-400">{palace.changsheng12}</span>
+                                    <span className="text-[9px] font-bold text-gray-600">{palace.decadal.range[0]}-{palace.decadal.range[1]}</span>
                                 </div>
                             </div>
                         ))}
@@ -151,22 +154,22 @@ export default function ZiWeiApp() {
                 {activeTab === "ming" && lifePalace && (
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-[#d93025] text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md">命</div>
+                            <div className="w-12 h-12 bg-[#e11d48] text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md">命</div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">命宫主星：{mainStars.length > 0 ? mainStars.map((s:any) => s.name).join("、") : "命无正曜"}</h3>
-                                <p className="text-sm text-slate-500">命宫显示了您先天的命运格局与核心特质。</p>
+                                <h3 className="text-lg font-bold text-gray-800">命宫主星：{mainStars.length > 0 ? mainStars.map((s:any) => s.name).join("、") : "命无正曜"}</h3>
+                                <p className="text-sm text-gray-500">命宫显示了您先天的命运格局与核心特质。</p>
                             </div>
                         </div>
                         {mainStars.length > 0 ? (
                             mainStars.map((star: any) => (
-                                <div key={star.name} className="bg-slate-50 p-4 rounded-lg border-l-4 border-[#d93025]">
-                                    <h4 className="font-bold text-[#d93025] mb-2">【{star.name}】坐守命宫</h4>
-                                    <p className="text-sm text-slate-700 leading-relaxed">{characterAnalysis[star.name]?.desc || "此星曜拥有独特的能量。"}</p>
+                                <div key={star.name} className="bg-gray-50 p-4 rounded-lg border-l-4 border-[#e11d48]">
+                                    <h4 className="font-bold text-[#e11d48] mb-2">【{star.name}】坐守命宫</h4>
+                                    <p className="text-sm text-gray-700 leading-relaxed">{characterAnalysis[star.name]?.desc || "此星曜拥有独特的能量。"}</p>
                                 </div>
                             ))
                         ) : (
-                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center py-10">
-                                <p className="text-slate-600 text-sm">您的命宫没有主星（命无正曜）。</p>
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center py-10">
+                                <p className="text-gray-600 text-sm">您的命宫没有主星（命无正曜）。</p>
                             </div>
                         )}
                     </div>
@@ -175,25 +178,25 @@ export default function ZiWeiApp() {
                 {activeTab === "character" && lifePalace && (
                     <div className="space-y-6">
                          <div className="text-center mb-6">
-                             <h3 className="text-lg font-bold text-slate-800">您的性格关键词</h3>
+                             <h3 className="text-lg font-bold text-gray-800">您的性格关键词</h3>
                              <div className="flex justify-center gap-2 mt-3">
                                  {mainStars.length > 0 ? (
                                      mainStars.map((s: any) => (
-                                         <span key={s.name} className="px-3 py-1 bg-[#d93025] text-white text-xs rounded-full shadow-sm">{characterAnalysis[s.name]?.title || s.name}</span>
+                                         <span key={s.name} className="px-3 py-1 bg-[#e11d48] text-white text-xs rounded-full shadow-sm">{characterAnalysis[s.name]?.title || s.name}</span>
                                      ))
-                                 ) : <span className="px-3 py-1 bg-slate-400 text-white text-xs rounded-full">善变多谋</span>}
+                                 ) : <span className="px-3 py-1 bg-gray-400 text-white text-xs rounded-full">善变多谋</span>}
                              </div>
                          </div>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-                                 <h4 className="font-bold text-slate-700 mb-3">正面特质</h4>
-                                 <ul className="list-disc list-inside text-sm text-slate-600 space-y-2">
+                             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                 <h4 className="font-bold text-gray-700 mb-3">正面特质</h4>
+                                 <ul className="list-disc list-inside text-sm text-gray-600 space-y-2">
                                      {mainStars.length > 0 ? mainStars.map((s:any) => <li key={s.name}>{characterAnalysis[s.name]?.pros}</li>) : <li>善于适应环境，学习能力强。</li>}
                                  </ul>
                              </div>
-                             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-                                 <h4 className="font-bold text-slate-700 mb-3">潜在弱点</h4>
-                                 <ul className="list-disc list-inside text-sm text-slate-600 space-y-2">
+                             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                 <h4 className="font-bold text-gray-700 mb-3">潜在弱点</h4>
+                                 <ul className="list-disc list-inside text-sm text-gray-600 space-y-2">
                                      {mainStars.length > 0 ? mainStars.map((s:any) => <li key={s.name}>{characterAnalysis[s.name]?.cons}</li>) : <li>缺乏主见，容易随波逐流。</li>}
                                  </ul>
                              </div>
