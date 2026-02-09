@@ -11,10 +11,12 @@ export default function ZiWeiApp() {
   const [birthDate, setBirthDate] = useState("1998-08-16");
   const [birthTime, setBirthTime] = useState(14);
   const [gender, setGender] = useState<Gender>("女");
-  // 这里的 FunctionalPalace 已经被换成 any，不会再报错了
+  
+  // 【修复1】这里用 any，防止报错说找不到类型
   const [selectedPalace, setSelectedPalace] = useState<any>(null);
 
-  const horoscope = useMemo(() => {
+  // 【修复2】关键修改！这里加了 <any>，彻底解决 fiveElements 报错
+  const horoscope = useMemo<any>(() => {
     try {
       return astro.bySolar(birthDate, birthTime, gender, true, "zh-CN");
     } catch (e) {
