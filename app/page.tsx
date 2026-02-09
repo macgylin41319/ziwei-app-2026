@@ -2,20 +2,35 @@
 
 import React, { useState, useMemo } from "react";
 import { astro } from "iztro";
-import { X, Star, Moon, Info } from "lucide-react";
+import { X, Star, Moon, Info, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Gender = "男" | "女";
+
+// 1. 新增：星星的简易解释字典
+const starDescriptions: Record<string, string> = {
+  "紫微": "【帝王之星】尊贵权威，有领导力，耳根子软，喜听好话。在命宫代表一生贵人运强。",
+  "天机": "【智慧之星】反应快，善于谋略，性急多变，容易想太多。适合动脑的工作。",
+  "太阳": "【官禄之主】热情博爱，喜欢照顾人，做事积极，但是比较劳碌，容易招惹是非。",
+  "武曲": "【财帛之主】刚毅果决，非常有执行力，但是略显孤僻，对钱财敏感，适合经商。",
+  "天同": "【福德之主】乐天知命，像小孩子一样，不爱计较，有时候比较懒散，有福气。",
+  "廉贞": "【次桃花星】公关能力强，是非分明，很有才华，但是性格多变，容易钻牛角尖。",
+  "天府": "【财库之星】稳重保守，善于理财，包容力强，比较爱面子，生活讲究享受。",
+  "太阴": "【田宅之主】温柔细心，追求完美，重视家庭，爱干净，适合内勤或艺术工作。",
+  "贪狼": "【欲望之星】多才多艺，擅长交际，桃花旺，野心大，喜欢新鲜刺激的事物。",
+  "巨门": "【是非之星】口才好，观察力敏锐，心思细腻，但是容易因为嘴快得罪人。",
+  "天相": "【印星】宰相之辅，形象好，讲究吃穿，有正义感，耳根软，适合辅助他人的工作。",
+  "天梁": "【老人星】慈悲为怀，喜欢照顾人，也是一颗“荫星”，遇到困难容易逢凶化吉。",
+  "七杀": "【将星】刚毅勇敢，很有冲劲，不喜欢被管束，一生起伏较大，适合开创性工作。",
+  "破军": "【耗星】破坏力强，喜欢推翻重来，很有创意，也是一颗变动之星，先破后立。",
+};
 
 export default function ZiWeiApp() {
   const [birthDate, setBirthDate] = useState("1998-08-16");
   const [birthTime, setBirthTime] = useState(14);
   const [gender, setGender] = useState<Gender>("女");
-  
-  // 【修复1】这里用 any，防止报错说找不到类型
   const [selectedPalace, setSelectedPalace] = useState<any>(null);
 
-  // 【修复2】关键修改！这里加了 <any>，彻底解决 fiveElements 报错
   const horoscope = useMemo<any>(() => {
     try {
       return astro.bySolar(birthDate, birthTime, gender, true, "zh-CN");
@@ -45,7 +60,7 @@ export default function ZiWeiApp() {
         <div className="flex items-center gap-2">
           <Moon className="text-purple-400 w-6 h-6" />
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-            紫微斗数 <span className="text-xs font-normal text-slate-500 border border-slate-700 rounded px-1 ml-1">PRO</span>
+            紫微斗数 <span className="text-xs font-normal text-slate-500 border border-slate-700 rounded px-1 ml-1">AI解析版</span>
           </h1>
         </div>
         <span className="text-xs text-slate-500">By Gemini</span>
@@ -201,10 +216,34 @@ export default function ZiWeiApp() {
                                 <X className="w-5 h-5 text-slate-400" />
                             </button>
                         </div>
+                        
+                        {/* 2. 新增：AI 解析区域 */}
+                        <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500/20 rounded-xl">
+                            <h3 className="text-sm font-bold text-purple-300 mb-2 flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" /> 简易解盘
+                            </h3>
+                            {selectedPalace.majorStars.length > 0 ? (
+                                <div className="space-y-2">
+                                    {selectedPalace.majorStars.map((star: any) => (
+                                        starDescriptions[star.name] && (
+                                            <div key={star.name} className="text-xs text-slate-300 leading-relaxed">
+                                                <span className="text-purple-400 font-bold">【{star.name}】</span>
+                                                {starDescriptions[star.name]}
+                                            </div>
+                                        )
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-xs text-slate-400">
+                                    这是“空宫”，通常代表这个宫位的不确定性较大，主要参考对宫（对面的宫位）的星星来判断。
+                                </div>
+                            )}
+                        </div>
+
                         <div className="space-y-4">
                             <div>
-                                <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                    <Star className="w-3 h-3" /> 主星坐守
+                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                    <Star className="w-3 h-3" /> 星曜列表
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                     {selectedPalace.majorStars.length > 0 ? (
