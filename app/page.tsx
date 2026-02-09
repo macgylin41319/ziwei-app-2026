@@ -2,44 +2,66 @@
 
 import React, { useState, useMemo } from "react";
 import { astro } from "iztro";
-import { X, Star, Moon, Info, Sparkles } from "lucide-react";
+import { X, Star, Moon, Sparkles, BookOpen, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Gender = "男" | "女";
 
-// 星星解释字典（AI 简易解盘数据库）
+// --- 1. 深度解盘数据库 ---
+
+// 宫位定义：告诉用户这个格子是管什么的
+const palaceDefinitions: Record<string, string> = {
+  "命宫": "【核心】代表你的个性、天赋、外貌和一生的总运势。是整个命盘的控制中心。",
+  "兄弟": "【人际】代表兄弟姐妹、亲密朋友、合作伙伴的关系，也可看现金流的周转。",
+  "夫妻": "【感情】代表配偶的个性、相貌，以及你们的相处模式和恋爱运势。",
+  "子女": "【后代】代表子女的性格、数量、缘分，也代表你的才华表现和桃花运。",
+  "财帛": "【财富】代表你的理财能力、赚钱模式、正财运以及对金钱的态度。",
+  "疾厄": "【健康】代表你的身体体质、易患疾病，也代表潜意识和深层心态。",
+  "迁移": "【外出】代表你外出发展的运势、给人的第一印象，以及在外的人际关系。",
+  "交友": "【社交】代表普通朋友、同事、下属的支持度，以及你的社交圈层。",
+  "官禄": "【事业】代表你的工作能力、适合的职业类型、职位高低和创业运势。",
+  "田宅": "【资产】代表不动产、居住环境、家庭氛围，也是你的“财库”所在。",
+  "福德": "【精神】代表你的精神享受、兴趣爱好、抗压能力和晚年的福气。",
+  "父母": "【长辈】代表父母缘分、长辈提携运，也代表相貌遗传和文书运。",
+};
+
+// 主星详解：加入性格优缺点
 const starDescriptions: Record<string, string> = {
-  "紫微": "【帝王之星】尊贵权威，有领导力，耳根子软，喜听好话。在命宫代表一生贵人运强。",
-  "天机": "【智慧之星】反应快，善于谋略，性急多变，容易想太多。适合动脑的工作。",
-  "太阳": "【官禄之主】热情博爱，喜欢照顾人，做事积极，但是比较劳碌，容易招惹是非。",
-  "武曲": "【财帛之主】刚毅果决，非常有执行力，但是略显孤僻，对钱财敏感，适合经商。",
-  "天同": "【福德之主】乐天知命，像小孩子一样，不爱计较，有时候比较懒散，有福气。",
-  "廉贞": "【次桃花星】公关能力强，是非分明，很有才华，但是性格多变，容易钻牛角尖。",
-  "天府": "【财库之星】稳重保守，善于理财，包容力强，比较爱面子，生活讲究享受。",
-  "太阴": "【田宅之主】温柔细心，追求完美，重视家庭，爱干净，适合内勤或艺术工作。",
-  "贪狼": "【欲望之星】多才多艺，擅长交际，桃花旺，野心大，喜欢新鲜刺激的事物。",
-  "巨门": "【是非之星】口才好，观察力敏锐，心思细腻，但是容易因为嘴快得罪人。",
-  "天相": "【印星】宰相之辅，形象好，讲究吃穿，有正义感，耳根软，适合辅助他人的工作。",
-  "天梁": "【老人星】慈悲为怀，喜欢照顾人，也是一颗“荫星”，遇到困难容易逢凶化吉。",
-  "七杀": "【将星】刚毅勇敢，很有冲劲，不喜欢被管束，一生起伏较大，适合开创性工作。",
-  "破军": "【耗星】破坏力强，喜欢推翻重来，很有创意，也是一颗变动之星，先破后立。",
+  "紫微": "【帝王星】尊贵、有领导力、耳根软。优点：稳重有威严；缺点：容易刚愎自用，喜听谗言。",
+  "天机": "【智慧星】机智、多变、善思考。优点：反应快、足智多谋；缺点：想太多、精神容易紧张。",
+  "太阳": "【官禄主】博爱、热情、喜付出。优点：积极乐观、有驱动力；缺点：劳心劳力，容易招惹是非。",
+  "武曲": "【财帛主】刚毅、果决、重执行。优点：对金钱敏感、行动力强；缺点：性格孤僻、不解风情。",
+  "天同": "【福星】温顺、乐天、重享受。优点：不爱计较、人缘好；缺点：容易懒散、缺乏开创力。",
+  "廉贞": "【次桃花】公关、才华、重感情。优点：社交能力强、是非分明；缺点：情绪多变、心高气傲。",
+  "天府": "【库星】稳重、包容、善理财。优点：有大将之风、生活讲究；缺点：保守谨慎、爱面子。",
+  "太阴": "【田宅主】温柔、细腻、重家庭。优点：心思细密、有艺术感；缺点：多愁善感、洁癖。",
+  "贪狼": "【欲望星】多才、交际、重机遇。优点：多才多艺、擅长应酬；缺点：贪得无厌、桃花泛滥。",
+  "巨门": "【口舌星】口才、观察、心思深。优点：能言善辩、分析力强；缺点：容易口舌得罪人、多疑。",
+  "天相": "【印星】公正、辅助、重形象。优点：忠诚可靠、粉饰太平；缺点：缺乏主见、容易随波逐流。",
+  "天梁": "【荫星】慈悲、照顾、重原则。优点：逢凶化吉、长者风范；缺点：好管闲事、老气横秋。",
+  "七杀": "【将星】肃杀、冲劲、喜独断。优点：勇往直前、不畏艰难；缺点：冲动鲁莽、一生起伏大。",
+  "破军": "【耗星】破坏、创新、喜变化。优点：创意无限、敢于突破；缺点：喜新厌旧、破坏力强。",
+};
+
+// 四化详解：这才是紫微斗数的精髓！
+const mutagenDescriptions: Record<string, string> = {
+  "禄": "【化禄 - 财富与机缘】超级吉星！代表钱财增加、机会增多、人缘变好。在命宫代表一生衣食无忧，在财帛宫代表财源滚滚。",
+  "权": "【化权 - 权力与掌控】强力吉星！代表掌权、升职、控制欲增强。在命宫代表个性强势，在官禄宫代表容易做主管。",
+  "科": "【化科 - 名声与功名】柔和吉星！代表考运好、出名、有贵人解围。在命宫代表斯文儒雅，在财帛宫代表收入平稳。",
+  "忌": "【化忌 - 阻碍与亏欠】麻烦制造者。代表不顺、执着、亏损、是非。在哪个宫位，就代表你最操心那个领域（但也代表那是你的业力所在）。",
 };
 
 export default function ZiWeiApp() {
-  const [birthDate, setBirthDate] = useState("1979-05-31"); // 帮你改成你的默认日期
-  const [birthTime, setBirthTime] = useState(15); // 帮你改成你的默认时间
+  const [birthDate, setBirthDate] = useState("1979-05-31");
+  const [birthTime, setBirthTime] = useState(15);
   const [gender, setGender] = useState<Gender>("男");
   const [selectedPalace, setSelectedPalace] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const horoscope = useMemo<any>(() => {
     try {
-      setErrorMsg(""); // 每次计算前清空错误
-      
-      // 【关键修复】把 0-23 的小时转换成 0-11 的时辰索引
-      // 15点 -> (15+1)/2 = 8 (申时)
+      setErrorMsg("");
       const timeIndex = Math.floor((birthTime + 1) / 2) % 12;
-
       return astro.bySolar(birthDate, timeIndex, gender, true, "zh-CN");
     } catch (e: any) {
       console.error(e);
@@ -69,14 +91,13 @@ export default function ZiWeiApp() {
         <div className="flex items-center gap-2">
           <Moon className="text-purple-400 w-6 h-6" />
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-            紫微斗数 <span className="text-xs font-normal text-slate-500 border border-slate-700 rounded px-1 ml-1">AI解析版</span>
+            紫微斗数 <span className="text-xs font-normal text-slate-500 border border-slate-700 rounded px-1 ml-1">Pro Max</span>
           </h1>
         </div>
         <span className="text-xs text-slate-500">By Gemini</span>
       </header>
 
       <main className="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto">
-        {/* 如果有错误，显示红色提示框 */}
         {errorMsg && (
             <div className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded text-red-200 text-center">
                 {errorMsg}
@@ -215,10 +236,11 @@ export default function ZiWeiApp() {
                     initial={{ scale: 0.9, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 20 }}
-                    className="bg-[#1e293b] w-full max-w-md rounded-2xl shadow-2xl border border-slate-700 overflow-hidden"
+                    className="bg-[#1e293b] w-full max-w-md rounded-2xl shadow-2xl border border-slate-700 overflow-hidden max-h-[90vh] overflow-y-auto"
                     onClick={e => e.stopPropagation()}
                 >
                     <div className="p-6">
+                        {/* 标题栏 */}
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -233,33 +255,57 @@ export default function ZiWeiApp() {
                             </button>
                         </div>
                         
-                        {/* AI 解析区域 */}
+                        {/* 1. 宫位解释（新增） */}
+                        <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/20 rounded-lg">
+                             <h3 className="text-xs font-bold text-blue-300 mb-1 flex items-center gap-1">
+                                <BookOpen className="w-3 h-3" /> 宫位定义
+                            </h3>
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                                {palaceDefinitions[selectedPalace.name] || "暂无解释"}
+                            </p>
+                        </div>
+
+                        {/* 2. 深度解盘（升级版） */}
                         <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500/20 rounded-xl">
-                            <h3 className="text-sm font-bold text-purple-300 mb-2 flex items-center gap-2">
-                                <Sparkles className="w-4 h-4" /> 简易解盘
+                            <h3 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" /> 命理分析
                             </h3>
                             {selectedPalace.majorStars.length > 0 ? (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {selectedPalace.majorStars.map((star: any) => (
-                                        starDescriptions[star.name] && (
-                                            <div key={star.name} className="text-xs text-slate-300 leading-relaxed">
-                                                <span className="text-purple-400 font-bold">【{star.name}】</span>
-                                                {starDescriptions[star.name]}
-                                            </div>
-                                        )
+                                        <div key={star.name}>
+                                            {/* 主星解释 */}
+                                            {starDescriptions[star.name] && (
+                                                <div className="text-xs text-slate-300 leading-relaxed mb-1">
+                                                    <span className="text-purple-400 font-bold">【{star.name}】</span>
+                                                    {starDescriptions[star.name]}
+                                                </div>
+                                            )}
+                                            {/* 四化解释（关键升级！） */}
+                                            {star.mutagen && mutagenDescriptions[star.mutagen] && (
+                                                <div className="text-xs text-amber-200/80 bg-amber-900/20 p-2 rounded border border-amber-500/20 mt-1 flex gap-2">
+                                                    <Zap className="w-3 h-3 mt-0.5 shrink-0" />
+                                                    <span>
+                                                        <span className="font-bold">附加能量：</span>
+                                                        {mutagenDescriptions[star.mutagen]}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="text-xs text-slate-400">
-                                    这是“空宫”，通常代表这个宫位的不确定性较大，主要参考对宫（对面的宫位）的星星来判断。
+                                    此为【空宫】，力量较弱，容易受环境影响。主要借对宫的星星来看，请参考对面的宫位。
                                 </div>
                             )}
                         </div>
 
+                        {/* 3. 星曜列表 */}
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                    <Star className="w-3 h-3" /> 星曜列表
+                                    <Star className="w-3 h-3" /> 主星坐守
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                     {selectedPalace.majorStars.length > 0 ? (
