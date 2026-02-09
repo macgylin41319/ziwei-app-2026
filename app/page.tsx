@@ -2,12 +2,12 @@
 
 import React, { useState, useMemo } from "react";
 import { astro } from "iztro";
-import { X, Star, Moon, Sparkles, BookOpen, Zap, Calendar, MapPin, User } from "lucide-react";
+import { X, Star, Moon, Sparkles, BookOpen, Zap, Calendar, HelpCircle, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Gender = "男" | "女";
 
-// --- 数据库保持不变 ---
+// --- 静态数据库 ---
 const palaceDefinitions: Record<string, string> = {
   "命宫": "【核心】代表你的个性、天赋、外貌和一生的总运势。是整个命盘的控制中心。",
   "兄弟": "【人际】代表兄弟姐妹、亲密朋友、合作伙伴的关系，也可看现金流的周转。",
@@ -52,6 +52,7 @@ export default function ZiWeiApp() {
   const [birthTime, setBirthTime] = useState(15);
   const [gender, setGender] = useState<Gender>("男");
   const [selectedPalace, setSelectedPalace] = useState<any>(null);
+  const [showHelp, setShowHelp] = useState(false); // 控制说明书弹窗
   const [errorMsg, setErrorMsg] = useState("");
 
   const horoscope = useMemo<any>(() => {
@@ -65,18 +66,6 @@ export default function ZiWeiApp() {
       return null;
     }
   }, [birthDate, birthTime, gender]);
-
-  // 从复杂的中文日期字符串中提取干支（模拟四柱显示）
-  // 注意：iztro 主要出紫微盘，这里我们把它的中文日期简单拆分展示，增加仪式感
-  const getBaziDisplay = () => {
-    if (!horoscope) return ["庚", "申", "辛", "酉"]; // 默认占位
-    // 简单提取，实际可能需要更复杂的八字库，这里用现有数据美化
-    const fullStr = horoscope.chineseDate || ""; 
-    const parts = fullStr.split(" ");
-    return parts.length > 2 ? parts : ["未", "知", "日", "期"];
-  };
-
-  const baziData = getBaziDisplay();
 
   const gridPositions: Record<string, string> = {
     "巳": "md:col-start-1 md:row-start-1",
@@ -94,10 +83,9 @@ export default function ZiWeiApp() {
   };
 
   return (
-    // 1. 背景色改成暖米色 (#fdfbf7)，文字改成深褐 (#4a4238)
     <div className="min-h-screen bg-[#fdfbf7] text-[#4a4238] font-sans selection:bg-amber-200">
       
-      {/* 顶栏：新中式风格 */}
+      {/* 顶栏：增加了“说明”按钮 */}
       <header className="fixed top-0 w-full z-10 bg-[#fdfbf7]/90 backdrop-blur-md border-b border-[#e5e0d8] px-6 py-4 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[#8b5e3c] rounded-full flex items-center justify-center text-[#fdfbf7]">
@@ -107,7 +95,13 @@ export default function ZiWeiApp() {
             紫微斗数 <span className="text-xs font-normal text-[#8b5e3c] border border-[#8b5e3c] rounded px-1 ml-1">AI大师版</span>
           </h1>
         </div>
-        <span className="text-xs text-[#8b5e3c]/70 font-serif">Gemini 命理</span>
+        <button 
+            onClick={() => setShowHelp(true)}
+            className="flex items-center gap-1 text-xs text-[#8b5e3c] hover:bg-[#f3efe9] px-2 py-1 rounded transition-colors"
+        >
+            <HelpCircle className="w-4 h-4" />
+            <span>说明书</span>
+        </button>
       </header>
 
       <main className="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto">
@@ -117,7 +111,7 @@ export default function ZiWeiApp() {
             </div>
         )}
 
-        {/* 2. 出生信息输入卡片 (模仿截图的米黄色卡片) */}
+        {/* 出生信息输入卡片 */}
         <section className="mb-8 bg-[#fffefc] p-6 rounded-2xl border border-[#e6e2dc] shadow-[0_4px_20px_-4px_rgba(139,94,60,0.1)]">
             <div className="flex items-center gap-2 mb-4 border-b border-[#f0ebe5] pb-2">
                 <Calendar className="w-5 h-5 text-[#8b5e3c]" />
@@ -165,9 +159,8 @@ export default function ZiWeiApp() {
 
         {horoscope && (
           <div className="relative w-full aspect-auto md:aspect-square max-w-[900px] mx-auto">
-            {/* 3. 模仿截图的“四柱八字”展示区 (虽然是紫微，但也把干支显示出来) */}
+            {/* 四柱八字展示区 */}
             <div className="mb-8 hidden md:grid grid-cols-4 gap-4 text-center">
-                 {/* 这里的四柱数据我们简单模拟展示，增加氛围感 */}
                  <div className="bg-[#fffefc] p-4 rounded-xl border border-[#e6e2dc] shadow-sm flex flex-col items-center">
                     <span className="text-xs text-[#9ca3af] mb-1">年柱</span>
                     <span className="text-xl font-serif font-bold text-[#5c4033]">{horoscope.chineseDate.split(' ')[0] || '年'}</span>
@@ -186,7 +179,7 @@ export default function ZiWeiApp() {
                  </div>
             </div>
 
-            {/* 4. 紫微排盘 Grid：浅色系 */}
+            {/* 紫微排盘 Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-4 gap-3 md:gap-2 h-auto md:h-[700px]">
               {/* 中宫信息 */}
               <div className="hidden md:flex col-start-2 col-end-4 row-start-2 row-end-4 bg-[#fdfbf7] border-2 border-[#e6e2dc] rounded-2xl flex-col items-center justify-center text-center p-6 relative overflow-hidden">
@@ -252,7 +245,10 @@ export default function ZiWeiApp() {
                            <span>{palace.changsheng12} · {palace.boshi12}</span>
                         </div>
                         <div className="text-right">
-                            <div className="text-xs font-mono text-[#8b5e3c] font-bold">{palace.decadal.range[0]} - {palace.decadal.range[1]}</div>
+                            {/* 大限展示区：这里显示 10 年大运的范围 */}
+                            <div className="text-xs font-mono text-[#8b5e3c] font-bold bg-[#f3efe9] px-1 rounded">
+                                大限: {palace.decadal.range[0]} - {palace.decadal.range[1]}
+                            </div>
                         </div>
                     </div>
                   </motion.div>
@@ -263,20 +259,62 @@ export default function ZiWeiApp() {
         )}
       </main>
 
-      {/* 5. 弹窗样式优化：浅色背景 */}
+      {/* 说明书弹窗 (新增) */}
+      <AnimatePresence>
+        {showHelp && (
+            <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#4a4238]/60 backdrop-blur-sm"
+                onClick={() => setShowHelp(false)}
+            >
+                <motion.div 
+                    initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+                    className="bg-[#fffefc] w-full max-w-lg rounded-2xl shadow-2xl border border-[#e6e2dc] overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="p-6">
+                        <div className="flex justify-between items-center mb-4 border-b border-[#f3efe9] pb-4">
+                            <h2 className="text-xl font-bold text-[#5c4033] flex items-center gap-2">
+                                <Info className="w-5 h-5 text-[#8b5e3c]" /> 紫微斗数说明
+                            </h2>
+                            <button onClick={() => setShowHelp(false)}><X className="w-5 h-5 text-[#9ca3af]" /></button>
+                        </div>
+                        <div className="space-y-4 text-sm text-[#4a4238] leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
+                            <p className="font-bold text-[#8b5e3c]">【紫微斗数简介】</p>
+                            <p>紫微斗数是一种起源于中国的传统命理学...透过分析个人出生的时间和地点，推算出「命盘」。</p>
+                            
+                            <div className="bg-[#f9f7f5] p-3 rounded-lg border border-[#e5e0d8]">
+                                <p className="font-bold text-[#5c4033] mb-1">宫位说明：</p>
+                                <p>命盘包含十二个「宫位」，代表人生的不同方面（如命宫、财帛宫等）。<br/>👉 您可直接点选宫位查询解说。</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-[#f0fdf4] p-3 rounded-lg border border-[#dcfce7]">
+                                    <p className="font-bold text-[#166534] mb-1">大限 (大运)</p>
+                                    <p className="text-xs text-[#14532d]">人生每十年的运势。命盘中每个格子右下角的数字（如 2-11）即代表该大限的年龄段。</p>
+                                </div>
+                                <div className="bg-[#fff7ed] p-3 rounded-lg border border-[#ffedd5]">
+                                    <p className="font-bold text-[#9a3412] mb-1">小限与流年</p>
+                                    <p className="text-xs text-[#7c2d12]">流年看外部环境，小限看内在运气。目前版本主要展示本命盘结构。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 宫位详情弹窗 */}
       <AnimatePresence>
         {selectedPalace && (
             <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#4a4238]/60 backdrop-blur-sm"
                 onClick={() => setSelectedPalace(null)}
             >
                 <motion.div 
-                    initial={{ scale: 0.9, y: 20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    exit={{ scale: 0.9, y: 20 }}
+                    initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1 }} y={{ scale: 0 }}
                     className="bg-[#fffefc] w-full max-w-md rounded-2xl shadow-2xl border border-[#e6e2dc] overflow-hidden max-h-[90vh] overflow-y-auto"
                     onClick={e => e.stopPropagation()}
                 >
@@ -295,6 +333,18 @@ export default function ZiWeiApp() {
                             </button>
                         </div>
                         
+                        {/* 大限提示 (新增) */}
+                        <div className="mb-4 p-3 bg-[#f0fdf4] border border-[#dcfce7] rounded-lg flex items-start gap-2">
+                             <Calendar className="w-4 h-4 text-[#166534] mt-0.5" />
+                             <div>
+                                 <h3 className="text-xs font-bold text-[#166534] mb-1">大限（{selectedPalace.decadal.range[0]} - {selectedPalace.decadal.range[1]} 岁）</h3>
+                                 <p className="text-xs text-[#14532d] leading-relaxed">
+                                     这是您 {selectedPalace.decadal.range[0]} 岁到 {selectedPalace.decadal.range[1]} 岁期间的行运宫位。在这十年间，您的运势重心会受到【{selectedPalace.name}】以及宫内星曜的影响。
+                                 </p>
+                             </div>
+                        </div>
+
+                        {/* 宫位定义 */}
                         <div className="mb-4 p-3 bg-[#eff6ff] border border-[#dbeafe] rounded-lg">
                              <h3 className="text-xs font-bold text-[#1e40af] mb-1 flex items-center gap-1">
                                 <BookOpen className="w-3 h-3" /> 宫位定义
@@ -304,6 +354,7 @@ export default function ZiWeiApp() {
                             </p>
                         </div>
 
+                        {/* 命理分析 */}
                         <div className="mb-6 p-4 bg-[#fdf2f8] border border-[#fbcfe8] rounded-xl">
                             <h3 className="text-sm font-bold text-[#be185d] mb-3 flex items-center gap-2">
                                 <Sparkles className="w-4 h-4" /> 命理分析
@@ -337,6 +388,7 @@ export default function ZiWeiApp() {
                             )}
                         </div>
 
+                        {/* 星曜列表 (保持不变) */}
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-xs font-bold text-[#9ca3af] uppercase tracking-wider mb-2 flex items-center gap-1">
