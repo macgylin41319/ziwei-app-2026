@@ -1,4 +1,4 @@
-"use client";
+."use client";
 
 import React, { useState, useMemo } from "react";
 import { astro } from "iztro";
@@ -11,7 +11,7 @@ export default function ZiWeiApp() {
   const [birthDate, setBirthDate] = useState("1998-08-16");
   const [birthTime, setBirthTime] = useState(14);
   const [gender, setGender] = useState<Gender>("女");
-  // 这里把 FunctionalPalace 换成了 any，解决了报错
+  // 这里的 FunctionalPalace 已经被换成 any，不会再报错了
   const [selectedPalace, setSelectedPalace] = useState<any>(null);
 
   const horoscope = useMemo(() => {
