@@ -2,104 +2,110 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { astro } from "iztro";
-import { 
-  X, Star, Moon, Sparkles, BookOpen, Zap, Calendar, TrendingUp, 
-  Layout, Layers, Compass, ArrowUpCircle, ArrowDownCircle, AlertTriangle,
-  Heart, Briefcase, Coins, MapPin, Hash, Palette
-} from "lucide-react";
+import { Moon, Sun, Calendar, User, Hash, MapPin, ChevronRight, Star, BookOpen, Smile, Grid } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Gender = "男" | "女";
-type TabView = "analysis" | "stars" | "sanfang" | "threeplates";
-type AnalysisMode = "general" | "wealth" | "love" | "career";
+type TabView = "pan" | "ming" | "character"; // 命盘、命宫、性格
 
-// --- 静态数据库 ---
-const palaceDefinitions: Record<string, string> = {
-  "命宫": "【核心】代表个性、天赋及一生总运势。",
-  "兄弟": "【人际】代表手足、知交及资金周转。",
-  "夫妻": "【感情】代表配偶特质及恋爱婚姻模式。",
-  "子女": "【后代】代表子女缘分、才华及桃花。",
-  "财帛": "【财富】代表赚钱模式、财运及理财态度。",
-  "疾厄": "【健康】代表体质、易患疾病及内心世界。",
-  "迁移": "【外出】代表出外运势、机遇及社交表现。",
-  "交友": "【社交】代表平辈互动、下属及人际圈。",
-  "官禄": "【事业】代表职业倾向、成就及工作能力。",
-  "田宅": "【资产】代表不动产、家宅运及总财库。",
-  "福德": "【精神】代表享福、抗压及晚年生活。",
-  "父母": "【长辈】代表长辈提携、遗传及文书契约。",
-};
-
-const starEncyclopedia: Record<string, string> = {
-  "紫微": "帝王之星，五行属土。主尊贵、官禄。优点：稳重老成。缺点：刚愎自用。",
-  "天机": "智慧之星，五行属木。主兄弟、智慧。优点：反应敏捷。缺点：思虑过重。",
-  "太阳": "官禄之主，五行属火。主博爱、权贵。优点：热情积极。缺点：劳心劳力。",
-  "武曲": "财帛之主，五行属金。主刚毅、财富。优点：执行力强。缺点：性格孤僻。",
-  "天同": "福德之主，五行属水。主享受、意志。优点：乐天知命。缺点：好逸恶劳。",
-  "廉贞": "次桃花星，五行属火。主邪恶、歪曲。优点：公关能力强。缺点：心高气傲。",
-  "天府": "财库之主，五行属土。主延寿、解厄。优点：心胸宽广。缺点：保守谨慎。",
-  "太阴": "田宅之主，五行属水。主富、不动产。优点：温柔细心。缺点：多愁善感。",
-  "贪狼": "欲望之星，五行属木/水。主祸福、桃花。优点：多才多艺。缺点：贪得无厌。",
-  "巨门": "是非之星，五行属水。主疑惑、口舌。优点：口才极佳。缺点：容易得罪人。",
-  "天相": "印星，五行属水。主官禄、慈爱。优点：忠诚可靠。缺点：缺乏主见。",
-  "天梁": "荫星，五行属土。主寿、贵、老。优点：慈悲为怀。缺点：好管闲事。",
-  "七杀": "将星，五行属金。主肃杀、孤克。优点：勇往直前。缺点：冲动鲁莽。",
-  "破军": "耗星，五行属水。主破坏、变动。优点：创意无限。缺点：喜新厌旧。",
-};
-
-// 模拟评分逻辑 - 根据模式调整权重
-const calculateScore = (palace: any, mode: AnalysisMode = "general") => {
-    let score = 65; // 基础分
-    if (!palace) return 0;
-    
-    // 基础星曜分
-    palace.majorStars.forEach((star: any) => {
-        if (star.brightness === '庙') score += 12;
-        else if (star.brightness === '旺') score += 8;
-        else if (star.brightness === '平') score += 0;
-        else if (star.brightness === '陷') score -= 8;
-        
-        // 四化加权
-        if (star.mutagen === '禄') score += 15;
-        if (star.mutagen === '权') score += 10;
-        if (star.mutagen === '科') score += 5;
-        if (star.mutagen === '忌') score -= 20;
-    });
-
-    // 模式加权 (Shen88 风格的专题优化)
-    if (mode === "wealth" && ["财帛", "田宅", "兄弟"].includes(palace.name)) score *= 1.1; // 财运模式加权
-    if (mode === "love" && ["夫妻", "交友", "子女"].includes(palace.name)) score *= 1.1;   // 桃花模式加权
-    if (mode === "career" && ["官禄", "迁移", "父母"].includes(palace.name)) score *= 1.1; // 事业模式加权
-
-    return Math.min(100, Math.max(20, Math.round(score)));
-};
-
-// 开运建议生成器
-const getLuckyTips = (horoscope: any) => {
-  if (!horoscope) return { color: "红", number: "8", direction: "南" };
-  // 简单模拟算法，实际可根据五行喜忌
-  const stem = horoscope.solarDate.split("")[0]; // 取年干
-  const colors: any = { 甲: "绿", 乙: "蓝", 丙: "红", 丁: "紫", 戊: "黄", 己: "褐", 庚: "白", 辛: "金", 壬: "黑", 癸: "灰" };
-  return {
-    color: colors[stem] || "红",
-    number: Math.floor(Math.random() * 9) + 1,
-    direction: ["东", "南", "西", "北"][Math.floor(Math.random() * 4)]
-  };
+// --- 静态数据库 (性格分析专用) ---
+const characterAnalysis: Record<string, any> = {
+  "紫微": { 
+    title: "领袖型", 
+    desc: "紫微星坐命的人，天生具有领袖气质。你稳重、有威严，喜欢主导局面。你的自尊心很强，有时会显得有些高傲，但内心其实很渴望被认可。在团队中，你往往是那个做最后决定的人。",
+    pros: "稳重、有领导力、有责任感、聪明好学。",
+    cons: "刚愎自用、耳根子软、爱面子、独断专行。"
+  },
+  "天机": { 
+    title: "智多星", 
+    desc: "天机星坐命的人，脑子转得特别快。你机智多谋，善于分析和策划。你的心思很细腻，但也容易想太多，导致精神紧张。你适合从事需要动脑筋的工作。",
+    pros: "反应敏捷、足智多谋、善于分析、心地善良。",
+    cons: "思虑过重、精神紧张、多愁善感、缺乏定力。"
+  },
+  "太阳": { 
+    title: "奉献型", 
+    desc: "太阳星坐命的人，像太阳一样热情博爱。你喜欢照顾别人，做事积极主动，很有正义感。你坦率直接，藏不住话，但也容易因为太心直口快而得罪人。",
+    pros: "热情积极、博爱无私、坦率直接、有正义感。",
+    cons: "劳心劳力、好面子、容易招惹是非、心直口快。"
+  },
+  "武曲": { 
+    title: "实干家", 
+    desc: "武曲星坐命的人，刚毅果决，非常有执行力。你对金钱和数字很敏感，理财能力强。你性格比较直爽，不喜欢拐弯抹角，但有时会让人觉得不够温柔。",
+    pros: "刚毅果决、执行力强、对金钱敏感、讲信用。",
+    cons: "性格孤僻、不解风情、固执己见、缺乏圆滑。"
+  },
+  "天同": { 
+    title: "乐天派", 
+    desc: "天同星坐命的人，是天生的福星。你性格温和，乐天知命，不喜欢与人争执。你很有童心，喜欢享受生活，但也因为太容易知足，有时会显得缺乏进取心。",
+    pros: "温和善良、乐天知命、人缘好、不爱计较。",
+    cons: "好逸恶劳、缺乏干劲、容易软弱、优柔寡断。"
+  },
+  "廉贞": { 
+    title: "公关高手", 
+    desc: "廉贞星坐命的人，才华横溢，擅长交际。你是非分明，很有主见，但也容易钻牛角尖。你的情感丰富，很有魅力，但也容易情绪化。",
+    pros: "公关能力强、才华横溢、是非分明、有进取心。",
+    cons: "心高气傲、情绪多变、钻牛角尖、猜疑心重。"
+  },
+  "天府": { 
+    title: "大掌柜", 
+    desc: "天府星坐命的人，稳重踏实，很有包容力。你善于理财和管理，做事通过稳扎稳打。你比较爱面子，生活讲究品味和享受。",
+    pros: "稳重踏实、心胸宽广、善于理财、有领导力。",
+    cons: "保守谨慎、爱面子、缺乏冲劲、城府较深。"
+  },
+  "太阴": { 
+    title: "完美主义", 
+    desc: "太阴星坐命的人，温柔细腻，追求完美。你重视家庭，爱干净，很有艺术天分。你的性格比较内向，容易多愁善感。",
+    pros: "温柔细腻、追求完美、重视家庭、有艺术感。",
+    cons: "多愁善感、洁癖、逃避现实、优柔寡断。"
+  },
+  "贪狼": { 
+    title: "多才多艺", 
+    desc: "贪狼星坐命的人，多才多艺，擅长交际应酬。你的欲望比较强，野心大，喜欢新鲜刺激的事物。你的桃花运通常不错，很有个人魅力。",
+    pros: "多才多艺、擅长交际、灵巧机变、有野心。",
+    cons: "贪得无厌、喜新厌旧、投机取巧、桃花泛滥。"
+  },
+  "巨门": { 
+    title: "名嘴", 
+    desc: "巨门星坐命的人，口才极佳，观察力敏锐。你心思缜密，善于分析和研究。但你也容易因为嘴巴太厉害而得罪人，或者变得多疑。",
+    pros: "口才极佳、分析力强、心思缜密、观察力敏锐。",
+    cons: "多疑、容易得罪人、口舌是非、消极负面。"
+  },
+  "天相": { 
+    title: "辅助者", 
+    desc: "天相星坐命的人，形象好，气质佳。你公正无私，很有正义感，喜欢帮助别人。你适合做辅助性的工作，但有时会显得缺乏主见。",
+    pros: "公正无私、形象好、忠诚可靠、乐于助人。",
+    cons: "缺乏主见、粉饰太平、容易随波逐流、耳根软。"
+  },
+  "天梁": { 
+    title: "大哥哥/大姐姐", 
+    desc: "天梁星坐命的人，慈悲为怀，喜欢照顾别人。你成熟稳重，很有原则，也喜欢说教。你是一颗荫星，遇到困难容易逢凶化吉。",
+    pros: "慈悲为怀、成熟稳重、逢凶化吉、正直无私。",
+    cons: "好管闲事、老气横秋、固执己见、孤高自赏。"
+  },
+  "七杀": { 
+    title: "孤胆英雄", 
+    desc: "七杀星坐命的人，刚毅勇敢，非常有冲劲。你不喜欢被管束，喜欢独来独往，为了目标可以不顾一切。你的人生往往起伏比较大。",
+    pros: "刚毅勇敢、勇往直前、不畏艰难、有魄力。",
+    cons: "冲动鲁莽、独断专行、人生起伏大、缺乏耐心。"
+  },
+  "破军": { 
+    title: "先锋", 
+    desc: "破军星坐命的人，破坏力强，喜欢推翻重来。你很有创意，敢于突破传统，不按常理出牌。你的性格比较冲动，但也很有开创精神。",
+    pros: "创意无限、敢于突破、有开创精神、不畏强权。",
+    cons: "破坏力强、喜新厌旧、反复无常、难以驾驭。"
+  },
 };
 
 export default function ZiWeiApp() {
   const [mounted, setMounted] = useState(false);
-  const [birthDate, setBirthDate] = useState("1990-05-31");
-  const [birthTime, setBirthTime] = useState(15);
-  const [gender, setGender] = useState<Gender>("男");
-  const [targetYear, setTargetYear] = useState(new Date().getFullYear());
-  const [selectedPalace, setSelectedPalace] = useState<any>(null);
-  const [showHelp, setShowHelp] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabView>("analysis");
-  const [selectedStar, setSelectedStar] = useState<string | null>(null);
-  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>("general"); // 新增专题模式
+  const [birthDate, setBirthDate] = useState("1995-08-16");
+  const [birthTime, setBirthTime] = useState(14); // 未时
+  const [gender, setGender] = useState<Gender>("女");
+  const [activeTab, setActiveTab] = useState<TabView>("pan"); // 默认显示排盘
 
   useEffect(() => { setMounted(true); }, []);
 
+  // 排盘计算
   const horoscope = useMemo<any>(() => {
     if (!mounted) return null;
     try {
@@ -108,376 +114,240 @@ export default function ZiWeiApp() {
     } catch (e) { return null; }
   }, [birthDate, birthTime, gender, mounted]);
 
-  const yearlyData = useMemo(() => {
-    if (!horoscope || !mounted) return null;
-    try { return horoscope.horoscope(targetYear); } catch (e) { return null; }
-  }, [horoscope, targetYear, mounted]);
+  // 获取命宫数据
+  const lifePalace = useMemo(() => {
+    if (!horoscope) return null;
+    return horoscope.palaces.find((p: any) => p.name === "命宫");
+  }, [horoscope]);
 
-  const lifeTrendData = useMemo(() => {
-    if (!horoscope) return [];
-    const sortedPalaces = [...horoscope.palaces].sort((a: any, b: any) => a.decadal.range[0] - b.decadal.range[0]);
-    return sortedPalaces.map((p: any) => ({
-      age: p.decadal.range[0],
-      endAge: p.decadal.range[1],
-      score: calculateScore(p, analysisMode), // 分数随模式变化
-      name: p.name,
-      heavenlyStem: p.heavenlyStem,
-      earthlyBranch: p.earthlyBranch
-    }));
-  }, [horoscope, analysisMode]);
+  // 命宫主星（用于性格分析）
+  const mainStars = useMemo(() => {
+    if (!lifePalace) return [];
+    return lifePalace.majorStars;
+  }, [lifePalace]);
 
-  const luckyTips = useMemo(() => getLuckyTips(horoscope), [horoscope]);
-
-  if (!mounted) return <div className="min-h-screen bg-[#fdfbf7]" />;
+  if (!mounted) return <div className="min-h-screen bg-slate-50" />;
 
   const gridPositions: Record<string, string> = {
-    "巳": "md:col-start-1 md:row-start-1", "午": "md:col-start-2 md:row-start-1",
-    "未": "md:col-start-3 md:row-start-1", "申": "md:col-start-4 md:row-start-1",
-    "辰": "md:col-start-1 md:row-start-2", "酉": "md:col-start-4 md:row-start-2",
-    "卯": "md:col-start-1 md:row-start-3", "戌": "md:col-start-4 md:row-start-3",
-    "寅": "md:col-start-1 md:row-start-4", "丑": "md:col-start-2 md:row-start-4",
-    "子": "md:col-start-3 md:row-start-4", "亥": "md:col-start-4 md:row-start-4",
+    "巳": "col-start-1 row-start-1", "午": "col-start-2 row-start-1",
+    "未": "col-start-3 row-start-1", "申": "col-start-4 row-start-1",
+    "辰": "col-start-1 row-start-2", "酉": "col-start-4 row-start-2",
+    "卯": "col-start-1 row-start-3", "戌": "col-start-4 row-start-3",
+    "寅": "col-start-1 row-start-4", "丑": "col-start-2 row-start-4",
+    "子": "col-start-3 row-start-4", "亥": "col-start-4 row-start-4",
   };
-
-  // 模式配置
-  const modeConfig = {
-    general: { color: "slate", icon: Layout, label: "综合运势" },
-    wealth: { color: "amber", icon: Coins, label: "财运走势" },
-    love: { color: "pink", icon: Heart, label: "情感婚姻" },
-    career: { color: "blue", icon: Briefcase, label: "事业官禄" },
-  };
-
-  const currentTheme = modeConfig[analysisMode];
 
   return (
-    <div className={`min-h-screen font-sans selection:bg-${currentTheme.color}-200 pb-20 bg-slate-50 text-slate-800`}>
-      {/* 顶栏 */}
-      <header className="fixed top-0 w-full z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 md:px-6 py-3 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-lg bg-${currentTheme.color}-500 shadow-${currentTheme.color}-200`}>
-            <currentTheme.icon className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight leading-none">
-              紫微斗数 <span className={`text-[10px] font-normal text-${currentTheme.color}-600 bg-${currentTheme.color}-50 border border-${currentTheme.color}-200 rounded px-1 ml-1 align-top`}>V7.0</span>
-            </h1>
-            <span className="text-[10px] text-slate-500">Shen88 全能综世版</span>
-          </div>
-        </div>
-        
-        {/* 专题模式切换器 (Shen88 核心功能参考) */}
-        <div className="hidden md:flex bg-slate-100 p-1 rounded-lg">
-            {(Object.keys(modeConfig) as AnalysisMode[]).map((mode) => (
-                <button 
-                    key={mode}
-                    onClick={() => setAnalysisMode(mode)}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${analysisMode === mode ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                    {modeConfig[mode].label}
-                </button>
-            ))}
-        </div>
-
-        <button onClick={() => setShowHelp(true)} className={`flex items-center gap-1 text-xs font-bold text-${currentTheme.color}-600 bg-${currentTheme.color}-50 hover:bg-${currentTheme.color}-100 px-3 py-1.5 rounded-full transition-colors`}>
-          <BookOpen className="w-4 h-4" /> <span>指南</span>
-        </button>
-      </header>
+    <div className="min-h-screen bg-[#f5f7fa] text-[#333] font-sans pb-24">
       
-      {/* 移动端模式切换 (仅小屏显示) */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-30 flex justify-around p-2 pb-safe">
-         {(Object.keys(modeConfig) as AnalysisMode[]).map((mode) => {
-             const Icon = modeConfig[mode].icon;
-             return (
-                <button key={mode} onClick={() => setAnalysisMode(mode)} className={`flex flex-col items-center gap-1 p-2 ${analysisMode === mode ? `text-${modeConfig[mode].color}-600` : 'text-slate-400'}`}>
-                    <Icon className="w-5 h-5" />
-                    <span className="text-[10px]">{modeConfig[mode].label}</span>
-                </button>
-             )
-         })}
-      </div>
-
-      <main className="pt-20 px-4 md:px-8 max-w-7xl mx-auto space-y-6">
-        
-        {/* 1. 输入区 & 开运罗盘 */}
-        <section className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            <div className="lg:col-span-3 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400">公历日期</label>
-                    <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm focus:ring-2 outline-none transition-all" />
-                </div>
-                <div className="space-y-1">
-                     <label className="text-[10px] font-bold text-slate-400">时辰</label>
-                    <select value={birthTime} onChange={e => setBirthTime(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm focus:ring-2 outline-none">
-                        {Array.from({length: 24}).map((_, i) => <option key={i} value={i}>{i}:00 ({getTimeZhi(i)})</option>)}
-                    </select>
-                </div>
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400">流年年份</label>
-                    <input type="number" value={targetYear} onChange={e => setTargetYear(Number(e.target.value))} className={`w-full bg-${currentTheme.color}-50 border border-${currentTheme.color}-200 text-${currentTheme.color}-600 font-bold rounded px-3 py-2 text-sm focus:ring-2 outline-none`} />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400">性别</label>
-                    <div className="flex bg-slate-50 rounded p-1 border border-slate-200">
-                         {(['男', '女'] as Gender[]).map(g => (
-                            <button key={g} onClick={() => setGender(g)} className={`flex-1 text-xs py-1.5 rounded transition-all ${gender === g ? `bg-white text-${currentTheme.color}-600 shadow-sm font-bold` : 'text-slate-400 hover:text-slate-600'}`}>{g}</button>
-                        ))}
-                    </div>
+      {/* 1. 顶部：输入栏 (Shen88 风格：简洁横条) */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+         <div className="max-w-4xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-center md:justify-between">
+            <h1 className="text-lg font-bold text-[#d93025] flex items-center gap-1">
+                <Sun className="w-5 h-5"/> 神巴巴紫微
+            </h1>
+            <div className="flex flex-wrap gap-2 text-xs">
+                <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="bg-slate-100 border border-slate-300 rounded px-2 py-1 outline-none" />
+                <select value={birthTime} onChange={e => setBirthTime(Number(e.target.value))} className="bg-slate-100 border border-slate-300 rounded px-2 py-1 outline-none">
+                     {Array.from({length: 24}).map((_, i) => <option key={i} value={i}>{i}:00 ({getTimeZhi(i)})</option>)}
+                </select>
+                <div className="flex bg-slate-100 rounded border border-slate-300 overflow-hidden">
+                     {(['男', '女'] as Gender[]).map(g => (
+                        <button key={g} onClick={() => setGender(g)} className={`px-3 py-1 transition-colors ${gender === g ? 'bg-[#d93025] text-white' : 'text-slate-600'}`}>{g}</button>
+                    ))}
                 </div>
             </div>
+         </div>
+      </header>
 
-            {/* 开运罗盘 (新增功能) */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-2 opacity-10"><Compass className="w-16 h-16" /></div>
-                 <h3 className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1"><Sparkles className="w-3 h-3 text-amber-500"/> 今日开运指南</h3>
-                 <div className="grid grid-cols-3 gap-2 text-center">
-                     <div className="bg-slate-50 rounded p-2">
-                         <Palette className="w-4 h-4 mx-auto text-slate-400 mb-1"/>
-                         <div className="text-[10px] text-slate-400">幸运色</div>
-                         <div className="font-bold text-slate-700">{luckyTips.color}</div>
-                     </div>
-                     <div className="bg-slate-50 rounded p-2">
-                         <Hash className="w-4 h-4 mx-auto text-slate-400 mb-1"/>
-                         <div className="text-[10px] text-slate-400">幸运数</div>
-                         <div className="font-bold text-slate-700">{luckyTips.number}</div>
-                     </div>
-                     <div className="bg-slate-50 rounded p-2">
-                         <MapPin className="w-4 h-4 mx-auto text-slate-400 mb-1"/>
-                         <div className="text-[10px] text-slate-400">贵人方</div>
-                         <div className="font-bold text-slate-700">{luckyTips.direction}</div>
-                     </div>
-                 </div>
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        {/* 2. 基本信息卡片 (Shen88 风格：表格化展示) */}
+        {horoscope && (
+        <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-[#fdf0ef] px-4 py-2 border-b border-[#fce4e2] flex items-center gap-2">
+                <User className="w-4 h-4 text-[#d93025]" />
+                <h2 className="font-bold text-[#d93025] text-sm">基本信息</h2>
+            </div>
+            <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-2 text-sm">
+                <div><span className="text-slate-400 text-xs block">公历</span><span className="font-medium">{horoscope.solarDate}</span></div>
+                <div><span className="text-slate-400 text-xs block">农历</span><span className="font-medium">{horoscope.lunarDate}</span></div>
+                <div><span className="text-slate-400 text-xs block">八字</span><span className="font-medium tracking-widest">{horoscope.chineseDate?.split(' ').join(' ')}</span></div>
+                <div><span className="text-slate-400 text-xs block">生肖</span><span className="font-medium">{horoscope.zodiac}</span></div>
+                <div><span className="text-slate-400 text-xs block">五行局</span><span className="font-medium text-[#d93025]">{horoscope.fiveElements}</span></div>
+                <div><span className="text-slate-400 text-xs block">命主</span><span className="font-medium">{horoscope.soul}</span></div>
+                <div><span className="text-slate-400 text-xs block">身主</span><span className="font-medium">{horoscope.body}</span></div>
+                <div><span className="text-slate-400 text-xs block">星座</span><span className="font-medium">{(horoscope as any).constellation || '自动计算'}</span></div>
             </div>
         </section>
-
-        {/* 2. 人生 K 线图 (根据模式动态变化) */}
-        {lifeTrendData.length > 0 && (
-          <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden transition-colors duration-500">
-             <div className="flex justify-between items-end mb-6">
-                <div>
-                   <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                       <currentTheme.icon className={`text-${currentTheme.color}-600`} /> 
-                       {modeConfig[analysisMode].label} K 线
-                   </h2>
-                   <p className="text-xs text-slate-500 mt-1">
-                       {analysisMode === 'wealth' && "财帛宫/田宅宫/兄弟宫 联合加权指数"}
-                       {analysisMode === 'love' && "夫妻宫/交友宫/子女宫 联合加权指数"}
-                       {analysisMode === 'career' && "官禄宫/父母宫/迁移宫 联合加权指数"}
-                       {analysisMode === 'general' && "命宫/身宫/福德宫 综合人生运势"}
-                   </p>
-                </div>
-                <div className="flex gap-4 text-xs">
-                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div>旺运区</div>
-                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div>潜龙区</div>
-                </div>
-             </div>
-             
-             {/* SVG Chart */}
-             <div className="w-full h-[180px] relative">
-                <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none" className="overflow-visible">
-                   <defs>
-                     <linearGradient id={`trendGradient-${analysisMode}`} x1="0" x2="0" y1="0" y2="1">
-                       <stop offset="0%" stopColor={analysisMode === 'wealth' ? '#fbbf24' : analysisMode === 'love' ? '#f472b6' : analysisMode === 'career' ? '#60a5fa' : '#94a3b8'} stopOpacity="0.3" />
-                       <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                     </linearGradient>
-                   </defs>
-                   
-                   {/* Trend Line */}
-                   <path 
-                     d={`M ${lifeTrendData.map((d: any, i: number) => 
-                        `${(i / (lifeTrendData.length - 1)) * 1000},${200 - (d.score * 1.8)}`
-                     ).join(" L ")}`}
-                     fill="none"
-                     stroke={analysisMode === 'wealth' ? '#d97706' : analysisMode === 'love' ? '#db2777' : analysisMode === 'career' ? '#2563eb' : '#475569'}
-                     strokeWidth="3"
-                     strokeLinecap="round"
-                     strokeLinejoin="round"
-                   />
-                   <path 
-                     d={`M 0,200 
-                        ${lifeTrendData.map((d: any, i: number) => 
-                           `L ${(i / (lifeTrendData.length - 1)) * 1000},${200 - (d.score * 1.8)}`
-                        ).join(" ")} 
-                        L 1000,200 Z`}
-                     fill={`url(#trendGradient-${analysisMode})`}
-                   />
-
-                   {/* Points */}
-                   {lifeTrendData.map((d: any, i: number) => {
-                      const x = (i / (lifeTrendData.length - 1)) * 1000;
-                      const y = 200 - (d.score * 1.8);
-                      const isHigh = d.score >= 80;
-                      return (
-                        <g key={i} className="group cursor-pointer">
-                           <circle cx={x} cy={y} r={isHigh ? 6 : 3} fill={isHigh ? "#ef4444" : "white"} stroke={isHigh ? "#ef4444" : "#cbd5e1"} strokeWidth="2" className="transition-all group-hover:r-6"/>
-                           <foreignObject x={x - 20} y={y - 35} width="40" height="30" className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                               <div className="bg-slate-800 text-white text-[10px] rounded px-1 py-0.5 text-center shadow-lg">{d.age}岁<br/>{d.score}分</div>
-                           </foreignObject>
-                        </g>
-                      );
-                   })}
-                </svg>
-                {/* X-Axis */}
-                <div className="flex justify-between mt-2 px-2 border-t border-slate-100 pt-2">
-                   {lifeTrendData.map((d: any, i: number) => (
-                      <div key={i} className="text-center w-8">
-                         <div className="text-[10px] font-bold text-slate-600">{d.age}</div>
-                      </div>
-                   ))}
-                </div>
-             </div>
-          </section>
         )}
 
-        {/* 3. 命盘详情 (Grid) */}
-        {horoscope && (
-          <div className="relative w-full max-w-[900px] mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-4 gap-2 h-auto md:h-[720px]">
-              {/* 中宫：详细信息 */}
-              <div className="hidden md:flex col-start-2 col-end-4 row-start-2 row-end-4 bg-[#f8f9fa] border-2 border-slate-200 rounded-2xl flex-col items-center justify-center text-center p-6 shadow-inner">
-                  <div className={`text-sm font-bold text-${currentTheme.color}-600 bg-${currentTheme.color}-50 px-3 py-1 rounded-full mb-2`}>
-                      {horoscope.lunarDate} (农历)
-                  </div>
-                  <div className="text-3xl font-serif font-bold text-slate-800 mb-1">{targetYear} <span className="text-lg text-slate-500">流年</span></div>
-                  <div className="text-xs text-slate-400 mt-2">
-                      当前模式：<span className={`font-bold text-${currentTheme.color}-600`}>{modeConfig[analysisMode].label}</span>
-                  </div>
-              </div>
-
-              {horoscope.palaces.map((palace: any, index: number) => {
-                 const isYearlyPalace = yearlyData?.yearly.palaceName === palace.name;
-                 const score = calculateScore(palace, analysisMode);
-                 // 突出显示当前模式相关的宫位
-                 let isModeHighlight = false;
-                 if (analysisMode === "wealth" && ["财帛", "田宅", "兄弟"].includes(palace.name)) isModeHighlight = true;
-                 if (analysisMode === "love" && ["夫妻", "交友", "子女"].includes(palace.name)) isModeHighlight = true;
-                 if (analysisMode === "career" && ["官禄", "迁移", "父母"].includes(palace.name)) isModeHighlight = true;
-
-                 return (
-                  <motion.div
-                    key={index}
-                    onClick={() => { setSelectedPalace(palace); setActiveTab('analysis'); setSelectedStar(null); }}
-                    whileHover={{ y: -2 }}
-                    className={`
-                        ${gridPositions[palace.earthlyBranch]} 
-                        relative cursor-pointer bg-white border rounded-xl p-3 flex flex-col justify-between transition-all shadow-sm hover:shadow-lg min-h-[140px] md:min-h-0
-                        ${isYearlyPalace ? 'ring-2 ring-orange-400 border-orange-400' : isModeHighlight ? `border-${currentTheme.color}-400 bg-${currentTheme.color}-50/10` : 'border-slate-200'}
-                    `}
-                  >
-                    <div className="flex justify-between items-start border-b border-slate-100 pb-1 mb-1">
-                        <div className="flex items-center gap-1">
-                            <span className={`text-sm font-bold ${isYearlyPalace ? 'text-[#c2410c]' : isModeHighlight ? `text-${currentTheme.color}-600` : 'text-[#374151]'}`}>{palace.name}</span>
-                            {isYearlyPalace && <span className="text-[9px] bg-[#c2410c] text-white px-1.5 py-0.5 rounded-full shadow-sm">流年</span>}
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-mono">{palace.heavenlyStem}{palace.earthlyBranch}</span>
-                    </div>
-
-                    <div className="flex-1 content-start flex flex-wrap gap-1">
-                        {palace.majorStars.map((s: any) => (
-                            <span key={s.name} className={`text-xs font-bold ${['庙','旺'].includes(s.brightness) ? 'text-red-600' : 'text-slate-700'}`}>
-                                {s.name}
-                                {s.mutagen && <span className={`ml-0.5 text-[8px] text-white px-1 rounded-sm ${s.mutagen === '忌' ? 'bg-green-600' : 'bg-red-500'}`}>{s.mutagen}</span>}
-                            </span>
-                        ))}
-                    </div>
-
-                    <div className="flex justify-between items-end mt-1 pt-1 border-t border-slate-100">
-                         <span className="text-[9px] text-slate-400 font-bold">{palace.decadal.range[0]}-{palace.decadal.range[1]}</span>
-                         <div className="flex items-center gap-1">
-                             <span className={`text-[10px] font-bold ${score > 80 ? 'text-red-500' : 'text-slate-400'}`}>{score}</span>
-                         </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+        {/* 3. 核心内容区 (Tab 切换) */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[500px]">
+            {/* Tab 导航 */}
+            <div className="flex border-b border-slate-200">
+                <button onClick={() => setActiveTab("pan")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "pan" ? "text-[#d93025] border-b-2 border-[#d93025] bg-[#fffbfb]" : "text-slate-500 hover:bg-slate-50"}`}>
+                    <Grid className="w-4 h-4"/> 紫微排盘
+                </button>
+                <button onClick={() => setActiveTab("ming")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "ming" ? "text-[#d93025] border-b-2 border-[#d93025] bg-[#fffbfb]" : "text-slate-500 hover:bg-slate-50"}`}>
+                    <Star className="w-4 h-4"/> 命宫分析
+                </button>
+                <button onClick={() => setActiveTab("character")} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === "character" ? "text-[#d93025] border-b-2 border-[#d93025] bg-[#fffbfb]" : "text-slate-500 hover:bg-slate-50"}`}>
+                    <Smile className="w-4 h-4"/> 性格分析
+                </button>
             </div>
-          </div>
-        )}
-      </main>
 
-      {/* 4. 详情弹窗 */}
-      <AnimatePresence>
-        {selectedPalace && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedPalace(null)}>
-                <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                {selectedPalace.name}宫 
-                                <span className="text-xs font-normal text-slate-500 bg-white border border-slate-200 rounded-full px-2 py-0.5">
-                                    {selectedPalace.heavenlyStem}{selectedPalace.earthlyBranch}
-                                </span>
-                            </h2>
+            <div className="p-4">
+                {/* 选项卡 1：紫微排盘 (Shen88 风格：紧凑 Grid) */}
+                {activeTab === "pan" && horoscope && (
+                    <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 h-[400px] md:h-[600px] bg-[#f8f9fa] border border-slate-200 p-1">
+                         {/* 中宫 */}
+                        <div className="col-start-2 col-end-4 row-start-2 row-end-4 bg-white border border-slate-200 flex flex-col items-center justify-center text-center p-4">
+                            <div className="text-2xl font-serif font-bold text-[#d93025] mb-2">紫微命盘</div>
+                            <div className="text-xs text-slate-400">Shen88 在线排盘系统</div>
+                            <div className="mt-4 text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded">
+                                阳男阴女顺行，阴男阳女逆行
+                            </div>
                         </div>
-                        <button onClick={() => setSelectedPalace(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
-                    </div>
 
-                    <div className="flex border-b border-slate-100">
-                        {[
-                            { id: 'analysis', label: '深度分析', icon: TrendingUp },
-                            { id: 'stars', label: '星曜解读', icon: Star },
-                            { id: 'sanfang', label: '三方四正', icon: Compass },
-                        ].map(tab => (
-                            <button key={tab.id} onClick={() => setActiveTab(tab.id as TabView)} className={`flex-1 py-3 text-xs font-bold flex items-center justify-center gap-1 transition-colors ${activeTab === tab.id ? `text-${currentTheme.color}-600 bg-${currentTheme.color}-50 border-b-2 border-${currentTheme.color}-600` : 'text-slate-500 hover:bg-slate-50'}`}>
-                                <tab.icon className="w-3 h-3" /> {tab.label}
-                            </button>
+                        {horoscope.palaces.map((palace: any, index: number) => (
+                            <div key={index} className={`${gridPositions[palace.earthlyBranch]} bg-white border border-slate-200 relative p-1 md:p-2 flex flex-col justify-between hover:shadow-md transition-shadow`}>
+                                <div className="flex justify-between items-start border-b border-slate-100 pb-1">
+                                    <span className={`text-xs md:text-sm font-bold ${palace.name === '命宫' ? 'text-white bg-[#d93025] px-1 rounded' : 'text-[#d93025]'}`}>{palace.name}</span>
+                                    <span className="text-[10px] text-slate-400 scale-90 origin-right">{palace.heavenlyStem}{palace.earthlyBranch}</span>
+                                </div>
+                                <div className="flex-1 flex flex-wrap content-start gap-0.5 mt-1">
+                                    {palace.majorStars.map((s: any) => (
+                                        <span key={s.name} className={`text-[10px] md:text-xs font-bold ${['庙','旺'].includes(s.brightness) ? 'text-[#d93025]' : 'text-slate-700'}`}>
+                                            {s.name}{s.mutagen && <span className="text-[8px] bg-red-100 text-red-600 rounded px-0.5 ml-0.5">{s.mutagen}</span>}
+                                        </span>
+                                    ))}
+                                    {palace.minorStars.map((s: any) => (
+                                        <span key={s.name} className="text-[9px] md:text-[10px] text-slate-400 scale-90">{s.name}</span>
+                                    ))}
+                                </div>
+                                <div className="flex justify-between items-end border-t border-slate-100 pt-1">
+                                    <span className="text-[9px] text-slate-400">{palace.changsheng12}</span>
+                                    <span className="text-[9px] font-bold text-slate-600">{palace.decadal.range[0]}-{palace.decadal.range[1]}</span>
+                                </div>
+                            </div>
                         ))}
                     </div>
+                )}
 
-                    <div className="p-5 overflow-y-auto flex-1 bg-white">
-                        {activeTab === 'analysis' && (
-                            <div className="space-y-4">
-                                <div className={`bg-${currentTheme.color}-50 p-4 rounded-xl border border-${currentTheme.color}-100`}>
-                                    <h3 className={`text-sm font-bold text-${currentTheme.color}-800 mb-2 flex items-center gap-2`}>
-                                        <Zap className="w-4 h-4" /> 
-                                        {analysisMode === 'wealth' && "财运指数"}
-                                        {analysisMode === 'love' && "桃花指数"}
-                                        {analysisMode === 'career' && "职场指数"}
-                                        {analysisMode === 'general' && "综合指数"}
-                                        ：{calculateScore(selectedPalace, analysisMode)}
-                                    </h3>
-                                    <p className={`text-xs text-${currentTheme.color}-800/80 leading-relaxed`}>
-                                        {calculateScore(selectedPalace, analysisMode) > 75 
-                                            ? "当前模式下，该宫位显示出强劲的正面能量，是您在该领域取得突破的关键点。" 
-                                            : "当前模式下，该宫位能量较为平缓或受阻，建议在该领域采取守势，避免冒进。"}
+                {/* 选项卡 2：命宫分析 */}
+                {activeTab === "ming" && lifePalace && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-[#d93025] text-white rounded-full flex items-center justify-center font-bold text-xl shadow-md">命</div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800">命宫主星：
+                                    {mainStars.length > 0 ? mainStars.map((s:any) => s.name).join("、") : "命无正曜"}
+                                </h3>
+                                <p className="text-sm text-slate-500">命宫显示了您先天的命运格局与核心特质。</p>
+                            </div>
+                        </div>
+
+                        {mainStars.length > 0 ? (
+                            mainStars.map((star: any) => (
+                                <div key={star.name} className="bg-slate-50 p-4 rounded-lg border-l-4 border-[#d93025]">
+                                    <h4 className="font-bold text-[#d93025] mb-2">【{star.name}】坐守命宫</h4>
+                                    <p className="text-sm text-slate-700 leading-relaxed">
+                                        {characterAnalysis[star.name]?.desc || "此星曜拥有独特的能量，影响着您的人生轨迹。"}
                                     </p>
+                                    <div className="mt-3 grid grid-cols-2 gap-4 text-xs">
+                                        <div className="bg-white p-2 rounded border border-slate-200">
+                                            <span className="font-bold text-green-600 block mb-1">优点</span>
+                                            {characterAnalysis[star.name]?.pros || "暂无数据"}
+                                        </div>
+                                        <div className="bg-white p-2 rounded border border-slate-200">
+                                            <span className="font-bold text-red-500 block mb-1">缺点</span>
+                                            {characterAnalysis[star.name]?.cons || "暂无数据"}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                        <BookOpen className="w-4 h-4" /> 宫位定义
-                                    </h3>
-                                    <p className="text-xs text-slate-600 leading-relaxed">{palaceDefinitions[selectedPalace.name]}</p>
-                                </div>
+                            ))
+                        ) : (
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center py-10">
+                                <p className="text-slate-600 text-sm">您的命宫没有主星（命无正曜）。</p>
+                                <p className="text-slate-500 text-xs mt-2">这通常意味着您的可塑性很强，容易受环境影响。建议参考对宫（迁移宫）的星曜来分析性格。</p>
                             </div>
                         )}
                         
-                        {activeTab === 'stars' && (
-                             <div className="space-y-4">
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedPalace.majorStars.map((star: any) => (
-                                        <button key={star.name} onClick={() => setSelectedStar(star.name)} className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${selectedStar === star.name ? `bg-${currentTheme.color}-600 text-white border-${currentTheme.color}-600` : 'bg-white text-slate-700 border-slate-200'}`}>{star.name}</button>
-                                    ))}
+                        <div className="mt-6 pt-6 border-t border-slate-100">
+                            <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><MapPin className="w-4 h-4"/> 命主与身主</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-[#fffbfb] p-3 rounded border border-[#fce4e2]">
+                                    <span className="text-xs text-slate-400 block">命主星</span>
+                                    <span className="font-bold text-[#d93025]">{horoscope?.soul}</span>
+                                    <p className="text-[10px] text-slate-500 mt-1">代表先天的运势走向和精神追求。</p>
                                 </div>
-                                {selectedStar && starEncyclopedia[selectedStar] ? (
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
-                                        <h4 className="font-bold text-slate-800 mb-2 text-sm flex items-center gap-2"><Star className="w-3 h-3 text-amber-500"/> {selectedStar}</h4>
-                                        <p className="text-sm text-slate-600 leading-relaxed">{starEncyclopedia[selectedStar]}</p>
-                                    </div>
-                                ) : (<div className="text-center py-8 text-xs text-slate-300">点击星曜查看解读</div>)}
+                                <div className="bg-[#fffbfb] p-3 rounded border border-[#fce4e2]">
+                                    <span className="text-xs text-slate-400 block">身主星</span>
+                                    <span className="font-bold text-[#d93025]">{horoscope?.body}</span>
+                                    <p className="text-[10px] text-slate-500 mt-1">代表后天的努力方向和身体状况。</p>
+                                </div>
                             </div>
-                        )}
-                         {activeTab === 'sanfang' && (
-                            <div className="grid grid-cols-3 gap-3 text-center">
-                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100"><div className="text-[10px] text-slate-400">三合</div><div className="font-bold text-slate-700 text-sm mt-1">官禄位</div></div>
-                                <div className={`p-3 bg-${currentTheme.color}-50 rounded-lg border border-${currentTheme.color}-200 ring-2 ring-${currentTheme.color}-100`}><div className={`text-[10px] text-${currentTheme.color}-500 font-bold`}>本宫</div><div className={`font-bold text-${currentTheme.color}-700 text-sm mt-1`}>{selectedPalace.name}</div></div>
-                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100"><div className="text-[10px] text-slate-400">三合</div><div className="font-bold text-slate-700 text-sm mt-1">财帛位</div></div>
-                                <div className="col-start-2 p-3 bg-slate-50 rounded-lg border border-slate-100"><div className="text-[10px] text-slate-400">对宫</div><div className="font-bold text-slate-700 text-sm mt-1">迁移位</div></div>
-                            </div>
-                        )}
+                        </div>
                     </div>
-                </motion.div>
-            </motion.div>
-        )}
-      </AnimatePresence>
+                )}
+
+                {/* 选项卡 3：性格分析 */}
+                {activeTab === "character" && lifePalace && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                         <div className="text-center mb-6">
+                             <h3 className="text-lg font-bold text-slate-800">您的性格关键词</h3>
+                             <div className="flex justify-center gap-2 mt-3">
+                                 {mainStars.length > 0 ? (
+                                     mainStars.map((s: any) => (
+                                         <span key={s.name} className="px-3 py-1 bg-[#d93025] text-white text-xs rounded-full shadow-sm">
+                                             {characterAnalysis[s.name]?.title || s.name}
+                                         </span>
+                                     ))
+                                 ) : (
+                                     <span className="px-3 py-1 bg-slate-400 text-white text-xs rounded-full">善变多谋</span>
+                                 )}
+                             </div>
+                         </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                                 <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                     <Smile className="w-4 h-4 text-orange-500"/> 正面特质
+                                 </h4>
+                                 <ul className="list-disc list-inside text-sm text-slate-600 space-y-2">
+                                     {mainStars.length > 0 ? mainStars.map((s:any) => (
+                                         <li key={s.name}>{characterAnalysis[s.name]?.pros}</li>
+                                     )) : <li>善于适应环境，学习能力强。</li>}
+                                 </ul>
+                             </div>
+                             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                                 <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                     <AlertTriangle className="w-4 h-4 text-slate-400"/> 潜在弱点
+                                 </h4>
+                                 <ul className="list-disc list-inside text-sm text-slate-600 space-y-2">
+                                     {mainStars.length > 0 ? mainStars.map((s:any) => (
+                                         <li key={s.name}>{characterAnalysis[s.name]?.cons}</li>
+                                     )) : <li>缺乏主见，容易随波逐流。</li>}
+                                 </ul>
+                             </div>
+                         </div>
+                         
+                         <div className="bg-slate-50 p-4 rounded-lg text-sm text-slate-600 leading-relaxed border border-slate-200">
+                             <p className="font-bold text-slate-800 mb-2">💡 大师建议：</p>
+                             <p>
+                                 {mainStars.length > 0 ? 
+                                   `您的命宫由【${mainStars[0].name}】主导，${characterAnalysis[mainStars[0].name]?.desc.substring(0, 50)}... 建议您发挥${characterAnalysis[mainStars[0].name]?.title}的优势，扬长避短。`
+                                   : "您命无正曜，人生充满变数与可能。建议多参考对宫（迁移宫）的星曜，多外出发展，依靠人际关系和环境的力量来成就自己。"
+                                 }
+                             </p>
+                         </div>
+                    </div>
+                )}
+            </div>
+        </div>
+
+      </main>
     </div>
   );
 }
