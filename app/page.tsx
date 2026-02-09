@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type Gender = "男" | "女";
 
-// 1. 新增：星星的简易解释字典
+// 星星解释字典（AI 简易解盘数据库）
 const starDescriptions: Record<string, string> = {
   "紫微": "【帝王之星】尊贵权威，有领导力，耳根子软，喜听好话。在命宫代表一生贵人运强。",
   "天机": "【智慧之星】反应快，善于谋略，性急多变，容易想太多。适合动脑的工作。",
@@ -26,15 +26,24 @@ const starDescriptions: Record<string, string> = {
 };
 
 export default function ZiWeiApp() {
-  const [birthDate, setBirthDate] = useState("1998-08-16");
-  const [birthTime, setBirthTime] = useState(14);
-  const [gender, setGender] = useState<Gender>("女");
+  const [birthDate, setBirthDate] = useState("1979-05-31"); // 帮你改成你的默认日期
+  const [birthTime, setBirthTime] = useState(15); // 帮你改成你的默认时间
+  const [gender, setGender] = useState<Gender>("男");
   const [selectedPalace, setSelectedPalace] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const horoscope = useMemo<any>(() => {
     try {
-      return astro.bySolar(birthDate, birthTime, gender, true, "zh-CN");
-    } catch (e) {
+      setErrorMsg(""); // 每次计算前清空错误
+      
+      // 【关键修复】把 0-23 的小时转换成 0-11 的时辰索引
+      // 15点 -> (15+1)/2 = 8 (申时)
+      const timeIndex = Math.floor((birthTime + 1) / 2) % 12;
+
+      return astro.bySolar(birthDate, timeIndex, gender, true, "zh-CN");
+    } catch (e: any) {
+      console.error(e);
+      setErrorMsg("排盘失败，请检查日期或刷新页面。");
       return null;
     }
   }, [birthDate, birthTime, gender]);
@@ -67,6 +76,13 @@ export default function ZiWeiApp() {
       </header>
 
       <main className="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto">
+        {/* 如果有错误，显示红色提示框 */}
+        {errorMsg && (
+            <div className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded text-red-200 text-center">
+                {errorMsg}
+            </div>
+        )}
+
         <section className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900/50 p-4 rounded-xl border border-white/5 shadow-xl">
             <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">公历日期</label>
@@ -105,7 +121,7 @@ export default function ZiWeiApp() {
             </div>
             <div className="flex items-end">
                 <div className="w-full text-center text-xs text-slate-500 pb-2">
-                    {horoscope ? `${horoscope.solarDate} · ${horoscope.lunarDate}` : '请选择时间'}
+                    {horoscope ? `${horoscope.solarDate} · ${horoscope.lunarDate}` : '请选择时间开始排盘'}
                 </div>
             </div>
         </section>
@@ -217,7 +233,7 @@ export default function ZiWeiApp() {
                             </button>
                         </div>
                         
-                        {/* 2. 新增：AI 解析区域 */}
+                        {/* AI 解析区域 */}
                         <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500/20 rounded-xl">
                             <h3 className="text-sm font-bold text-purple-300 mb-2 flex items-center gap-2">
                                 <Sparkles className="w-4 h-4" /> 简易解盘
